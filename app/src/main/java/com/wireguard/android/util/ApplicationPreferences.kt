@@ -6,20 +6,26 @@
 package com.wireguard.android.util
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import com.tencent.mmkv.MMKV
 import kotlin.reflect.KProperty
 
-class ApplicationPreferences(val context: Context) : SharedPreferences.OnSharedPreferenceChangeListener {
+class ApplicationPreferences(val context: Context) {
 
     private val onChangeMap: MutableMap<String, () -> Unit> = HashMap()
     private val onChangeListeners: MutableMap<String, MutableSet<OnPreferenceChangeListener>> = HashMap()
     private var onChangeCallback: ApplicationPreferencesChangeCallback? = null
-    val sharedPrefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-
+    val mmkv: MMKV = MMKV.defaultMMKV()
     private val doNothing = { }
     private val restart = { restart() }
     private val restartActiveTunnels = { restartActiveTunnels() }
+
+    init {
+        if (!mmkv.getBoolean("import_success", false)) {
+            mmkv.importFromSharedPreferences(PreferenceManager.getDefaultSharedPreferences(context))
+            mmkv.putBoolean("import_success", true)
+        }
+    }
 
     var exclusions by StringPref("global_exclusions", "", restartActiveTunnels)
     val exclusionsArray: ArrayList<String>
@@ -35,12 +41,10 @@ class ApplicationPreferences(val context: Context) : SharedPreferences.OnSharedP
     var fingerprintAuth by BooleanPref("fingerprint_auth", false)
 
     fun registerCallback(callback: ApplicationPreferencesChangeCallback) {
-        sharedPrefs.registerOnSharedPreferenceChangeListener(this)
         onChangeCallback = callback
     }
 
     fun unregisterCallback() {
-        sharedPrefs.unregisterOnSharedPreferenceChangeListener(this)
         onChangeCallback = null
     }
 
@@ -58,7 +62,7 @@ class ApplicationPreferences(val context: Context) : SharedPreferences.OnSharedP
 
     open inner class StringSetPref(key: String, defaultValue: Set<String>, onChange: () -> Unit = doNothing) :
             PrefDelegate<Set<String>>(key, defaultValue, onChange) {
-        override fun onGetValue(): Set<String> = sharedPrefs.getStringSet(getKey(), defaultValue)
+        override fun onGetValue(): Set<String> = mmkv.getStringSet(getKey(), defaultValue)
                 ?: defaultValue
 
         override fun onSetValue(value: Set<String>) {
@@ -68,7 +72,7 @@ class ApplicationPreferences(val context: Context) : SharedPreferences.OnSharedP
 
     open inner class StringPref(key: String, defaultValue: String = "", onChange: () -> Unit = doNothing) :
             PrefDelegate<String>(key, defaultValue, onChange) {
-        override fun onGetValue(): String = sharedPrefs.getString(getKey(), defaultValue)
+        override fun onGetValue(): String = mmkv.getString(getKey(), defaultValue)
                 ?: defaultValue
 
         override fun onSetValue(value: String) {
@@ -78,7 +82,7 @@ class ApplicationPreferences(val context: Context) : SharedPreferences.OnSharedP
 
     open inner class BooleanPref(key: String, defaultValue: Boolean = false, onChange: () -> Unit = doNothing) :
             PrefDelegate<Boolean>(key, defaultValue, onChange) {
-        override fun onGetValue(): Boolean = sharedPrefs.getBoolean(getKey(), defaultValue)
+        override fun onGetValue(): Boolean = mmkv.getBoolean(getKey(), defaultValue)
 
         override fun onSetValue(value: Boolean) {
             edit { putBoolean(getKey(), value) }
@@ -111,11 +115,8 @@ class ApplicationPreferences(val context: Context) : SharedPreferences.OnSharedP
 
         abstract fun onSetValue(value: T)
 
-        protected inline fun edit(body: SharedPreferences.Editor.() -> Unit) {
-            val editor = sharedPrefs.edit()
-            body(editor)
-            @Suppress("CommitPrefEdits")
-            editor.commit()
+        protected inline fun edit(body: MMKV.() -> Unit) {
+            body(mmkv)
         }
 
         internal fun getKey() = key
@@ -134,10 +135,5 @@ class ApplicationPreferences(val context: Context) : SharedPreferences.OnSharedP
 
         open fun disposeOldValue(oldValue: T) {
         }
-    }
-
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-        onChangeMap[key]?.invoke()
-        onChangeListeners[key]?.forEach { it.onValueChanged(key, this, false) }
     }
 }

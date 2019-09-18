@@ -96,6 +96,7 @@ dependencies {
     implementation(Libs.databinding_adapters)
     implementation(Libs.databinding_runtime)
     implementation(Libs.fragment_ktx)
+    implementation(Libs.mmkv)
     implementation(Libs.preference)
     implementation(Libs.slice_builders)
     implementation(Libs.slice_core)

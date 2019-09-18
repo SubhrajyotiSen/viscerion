@@ -130,6 +130,8 @@ object Libs {
     const val leakcanary_android: String = "com.squareup.leakcanary:leakcanary-android:" +
             Versions.leakcanary_android
 
+    const val mmkv: String = "com.tencent:mmkv:" + Versions.mmkv
+
     const val de_fayard_buildsrcversions_gradle_plugin: String =
             "de.fayard.buildSrcVersions:de.fayard.buildSrcVersions.gradle.plugin:" +
             Versions.de_fayard_buildsrcversions_gradle_plugin

@@ -73,6 +73,21 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat(), AppListDialogFragment.AppExclusionListener {
         private val prefs = getPrefs()
 
+        private inner class PreferenceChangeDispatcher() : Preference.OnPreferenceChangeListener {
+            override fun onPreferenceChange(preference: Preference?, newValue: Any?): Boolean {
+                if (preference == null || newValue == null) return false
+                when (preference) {
+                    is SwitchPreferenceCompat, is CheckBoxPreference -> {
+                        prefs.mmkv.putBoolean(preference.key, newValue as Boolean)
+                    }
+                    is EditTextPreference -> {
+                        prefs.mmkv.putString(preference.key, newValue as String)
+                    }
+                }
+                return true
+            }
+        }
+
         override fun onCreatePreferences(savedInstanceState: Bundle?, key: String?) {
             addPreferencesFromResource(R.xml.preferences)
             val screen = preferenceScreen

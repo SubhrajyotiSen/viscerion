@@ -63,6 +63,8 @@ object Versions {
 
     const val leakcanary_android: String = "2.0-beta-3"
 
+    const val mmkv: String = "1.0.23"
+
     const val de_fayard_buildsrcversions_gradle_plugin: String = "0.5.0" // available: "0.6.1"
 
     const val android_retrofuture: String = "1.7.1"
